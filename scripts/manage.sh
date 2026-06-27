@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # UAT supervisor — runs the whole stack natively (no docker) on one container.
 #
+#   scripts/manage.sh setup      # install Node+Foundry+pnpm, build, deps, verify (one run)
+#   scripts/manage.sh verify     # end-to-end smoke: anvil + deploy round-trip
 #   scripts/manage.sh start      # boot chain → deploy → services → console (background)
 #   scripts/manage.sh stop       # stop everything
 #   scripts/manage.sh restart    # rotate: stop, archive logs, start fresh
@@ -68,7 +70,78 @@ wait_http() {  # name url
 }
 
 # --- commands ---------------------------------------------------------------
+# One-run provisioning: installs Node (via nvm if missing/old), Foundry
+# (anvil/forge/cast), pnpm, builds the contracts, installs deps, then verifies
+# the toolchain actually works end-to-end. Idempotent — safe to re-run.
+ensure_node() {
+  if command -v node >/dev/null && [ "$(node -p 'process.versions.node.split(".")[0]')" -ge 20 ]; then
+    echo "node present ($(node -v))"; return
+  fi
+  echo "installing Node 20 via nvm…"
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] || curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+  # shellcheck disable=SC1091
+  . "$NVM_DIR/nvm.sh"
+  nvm install 20 && nvm use 20
+}
+
+ensure_foundry() {
+  if command -v forge >/dev/null; then echo "Foundry present ($(forge --version | head -1))"; return; fi
+  echo "installing Foundry (anvil/forge/cast)…"
+  curl -L https://foundry.paradigm.xyz | bash
+  "$HOME/.foundry/bin/foundryup"
+  PATH="$HOME/.foundry/bin:$PATH"
+}
+
+ensure_pnpm() {
+  if command -v pnpm >/dev/null; then echo "pnpm present ($(pnpm --version))"; return; fi
+  echo "enabling pnpm via corepack…"
+  corepack enable && corepack prepare pnpm@9 --activate
+}
+
+cmd_setup() {
+  command -v curl >/dev/null || { echo "curl not found — install curl + git first" >&2; exit 1; }
+  ensure_node
+  ensure_foundry
+  ensure_pnpm
+
+  echo "building contracts…"
+  forge build --root contracts
+
+  echo "installing workspace dependencies…"
+  pnpm install --frozen-lockfile
+
+  cmd_verify
+  echo "setup complete — run: scripts/manage.sh start"
+}
+
+# End-to-end smoke: prove anvil + forge + node + contracts + deploy all work,
+# on a throwaway port. Protects fixtures/deployments.json (shared with any live
+# stack) by restoring it afterward, so verify never disturbs a running demo.
+cmd_verify() {
+  echo "verifying toolchain…"
+  for b in node pnpm forge anvil cast; do
+    command -v "$b" >/dev/null || { echo "  MISSING: $b" >&2; exit 1; }
+    printf "  %-6s %s\n" "$b" "$("$b" --version 2>/dev/null | head -1)"
+  done
+
+  local port=8599 rpc="http://127.0.0.1:8599" dep="$ROOT/fixtures/deployments.json" bak=""
+  [ -f "$dep" ] && { bak="$dep.verifybak"; cp "$dep" "$bak"; }
+  spawn verify-anvil anvil --port "$port" --silent
+  for _ in $(seq 1 50); do cast block-number --rpc-url "$rpc" >/dev/null 2>&1 && break; sleep 0.3; done
+
+  local rc=0
+  RPC_URL="$rpc" node scripts/deploy.mjs >>"$LOG_DIR/verify.log" 2>&1 || rc=$?
+  kill_proc verify-anvil
+  [ -n "$bak" ] && mv -f "$bak" "$dep"   # restore shared fixtures
+
+  [ "$rc" -eq 0 ] && echo "verify ok — chain + deploy round-trip succeeded" \
+                  || { echo "verify FAILED (deploy rc=$rc) — see $LOG_DIR/verify.log" >&2; exit 1; }
+}
+
 cmd_start() {
+  command -v pnpm >/dev/null && [ -d "$ROOT/node_modules" ] && command -v forge >/dev/null \
+    || { echo "prerequisites missing — run: scripts/manage.sh setup" >&2; exit 1; }
   if alive orchestrator; then echo "already running (orchestrator up). use restart."; exit 0; fi
 
   if [ "$CHAIN" = anvil ]; then
@@ -131,10 +204,12 @@ cmd_logs() {
 }
 
 case "${1:-}" in
+  setup)   cmd_setup ;;
+  verify)  cmd_verify ;;
   start)   cmd_start ;;
   stop)    cmd_stop ;;
   restart|rotate) cmd_restart ;;
   status)  cmd_status ;;
   logs)    shift; cmd_logs "${1:-}" ;;
-  *) echo "usage: $0 {start|stop|restart|status|logs [svc]}" >&2; exit 2 ;;
+  *) echo "usage: $0 {setup|verify|start|stop|restart|status|logs [svc]}" >&2; exit 2 ;;
 esac
