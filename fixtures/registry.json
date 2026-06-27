@@ -1,0 +1,36 @@
+{
+  "institutions": [
+    {
+      "bic": "DEBTDEFF",
+      "legalName": "DebtCo Debt Capital Markets",
+      "jurisdiction": "DE",
+      "kycStatus": "VALID",
+      "validUntil": "2027-12-31T00:00:00Z",
+      "registryRef": "DEBTCO-DEBN001"
+    },
+    {
+      "bic": "FUNDFRPP",
+      "legalName": "FundMgr Asset Management SA",
+      "jurisdiction": "FR",
+      "kycStatus": "VALID",
+      "validUntil": "2027-12-31T00:00:00Z",
+      "registryRef": "FUNDMG-FRPA001"
+    },
+    {
+      "bic": "CLRGLULL",
+      "legalName": "LuxClear Clearing SCA",
+      "jurisdiction": "LU",
+      "kycStatus": "VALID",
+      "validUntil": "2027-12-31T00:00:00Z",
+      "registryRef": "CLRING-LUXM001"
+    },
+    {
+      "bic": "NEWFFRPP",
+      "legalName": "NewFund Capital SA",
+      "jurisdiction": "FR",
+      "kycStatus": "VALID",
+      "validUntil": "2027-12-31T00:00:00Z",
+      "registryRef": "NEWFND-FRPA002"
+    }
+  ]
+}

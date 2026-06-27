@@ -1,0 +1,41 @@
+{
+  "policyId": "eu-mifid-equity-v1",
+  "version": "eu-mifid-equity-v1@1",
+  "assetClass": "EQUITY-EU-2026",
+  "assetName": "Tokenized Equity",
+  "combination": "deny-overrides",
+  "rules": [
+    {"id": "freeze", "label": "Freeze", "check": "neither party nor holding frozen", "denyReasonCode": "FRZ06"},
+    {"id": "kyc", "label": "KYC", "check": "wallet->BIC binding present and KYC claim valid", "denyReasonCode": "BLCK01"},
+    {"id": "sanctions", "label": "Sanctions", "check": "screening attestation clear and fresh", "denyReasonCode": "AML02"},
+    {"id": "jurisdiction", "label": "Jurisdiction", "check": "destination matches the jurisdiction matrix", "denyReasonCode": "JUR03"},
+    {"id": "counterparty", "label": "Counterparty class", "check": "recipient category permitted in the category matrix", "denyReasonCode": "CTP12"},
+    {"id": "lockup", "label": "Lock-up", "check": "now >= lockupEnd", "denyReasonCode": "LCK04"},
+    {"id": "holderCap", "label": "Holder cap", "check": "holders < maxHolders or already a holder", "denyReasonCode": "CAP05"},
+    {"id": "transferLimit", "label": "Tiered limit", "check": "amount resolved against the notional bands", "denyReasonCode": "LIM07"},
+    {"id": "velocity", "label": "Velocity", "check": "rolling-window cumulative cap per party", "denyReasonCode": "VEL11"},
+    {"id": "edd", "label": "EDD gate", "check": "enhanced approval present when policy demands review", "reviewReasonCode": "EDD10"}
+  ],
+  "bands": [
+    {"upTo": "2000000", "action": "ALLOW", "label": "Straight-through"},
+    {"upTo": "20000000", "action": "REVIEW", "label": "Enhanced due diligence"},
+    {"upTo": null, "action": "DENY", "label": "Refused", "denyReasonCode": "LIM07"}
+  ],
+  "jurisdictions": [
+    {"code": "FR", "allowed": true, "maxAmount": null, "requireEdd": false, "note": "Home market"},
+    {"code": "DE", "allowed": true, "maxAmount": null, "requireEdd": false, "note": "Home market"},
+    {"code": "LU", "allowed": true, "maxAmount": "5000000", "requireEdd": false, "note": "Capped"},
+    {"code": "GB", "allowed": true, "maxAmount": "500000", "requireEdd": true, "note": "Third country — always EDD"},
+    {"code": "US", "allowed": false, "maxAmount": null, "requireEdd": false, "note": "Not in scope"},
+    {"code": "CH", "allowed": false, "maxAmount": null, "requireEdd": false, "note": "Not in scope"}
+  ],
+  "categories": [
+    {"code": "BANK", "allowed": true, "maxAmount": null, "requireEdd": false, "note": "Credit institution"},
+    {"code": "FUND", "allowed": true, "maxAmount": null, "requireEdd": false, "note": "Regulated fund"},
+    {"code": "CORP", "allowed": true, "maxAmount": "2000000", "requireEdd": true, "note": "Corporate — capped + EDD"}
+  ],
+  "velocity": {"window": 86400, "windowLabel": "24h", "cap": "30000000"},
+  "maxHolders": 5,
+  "allowedCountries": ["FR", "DE", "LU", "GB"],
+  "lockupEnd": null
+}

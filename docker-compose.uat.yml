@@ -1,0 +1,44 @@
+# UAT overlay: serve the whole demo on :80 and :443 behind Caddy.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.uat.yml up --build
+#     → console + API on  http://<host>  and  https://<host>  (self-signed)
+#
+# Adds two things on top of the base stack and changes nothing else:
+#   ui-build  one-shot: builds the console to static assets (relative /api URLs)
+#   caddy     reverse proxy: serves the static console, proxies /api/* to the
+#             orchestrator, terminates TLS. The base `ui` (Vite dev on :5173)
+#             still runs but is unused in UAT — hit 80/443 instead.
+services:
+  ui-build:
+    image: swift-control-function:latest
+    build: .
+    pull_policy: build
+    restart: "no"
+    command: pnpm --filter ui build
+    environment:
+      VITE_API_URL: ""        # relative paths → browser calls same-origin /api
+    volumes:
+      - ui-dist:/app/ui/dist
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: swift-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ui-dist:/srv:ro
+      - caddy-data:/data        # persists the internal CA so the cert is stable
+      - caddy-config:/config
+    depends_on:
+      ui-build:
+        condition: service_completed_successfully
+      orchestrator:
+        condition: service_healthy
+
+volumes:
+  ui-dist:
+  caddy-data:
+  caddy-config:

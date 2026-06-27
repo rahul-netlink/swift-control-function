@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── design tokens (monochrome canvas + semantic accent) ─────────────────── */
+/* The whole UI is grayscale on a pitch-black ground — chrome, cards, tables,
+   buttons, the primary action, tier/source metadata: all zero-saturation.
+   Colour is spent on ONE thing only: the compliance signal. Green = cleared /
+   valid, red = blocked / risk. Because nothing else on screen is saturated, a
+   verdict is the only colour in view — that's the demo's whole point. */
+@layer base {
+  :root {
+    color-scheme: dark;
+
+    --background: 0 0% 0%;
+    --foreground: 0 0% 92%;
+
+    --card: 0 0% 4.5%;
+    --card-foreground: 0 0% 92%;
+
+    --popover: 0 0% 4%;
+    --popover-foreground: 0 0% 92%;
+
+    /* near-white = the single "action" tone */
+    --primary: 0 0% 92%;
+    --primary-foreground: 0 0% 5%;
+
+    --secondary: 0 0% 13%;
+    --secondary-foreground: 0 0% 85%;
+
+    --muted: 0 0% 11%;
+    --muted-foreground: 0 0% 56%;
+
+    --accent: 0 0% 14%;
+    --accent-foreground: 0 0% 92%;
+
+    /* the only two hues in the system — kept desaturated so they read as
+       signal on the grey ground, not candy */
+    --destructive: 4 66% 61%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-muted: 4 40% 14%;
+    --destructive-border: 4 34% 30%;
+
+    --success: 150 46% 53%;
+    --success-foreground: 150 60% 7%;
+    --success-muted: 150 30% 12%;
+    --success-border: 150 24% 28%;
+
+    /* the third compliance signal: amber = held for enhanced due diligence
+       (REVIEW) — neither cleared (green) nor refused (red) */
+    --warning: 38 92% 55%;
+    --warning-foreground: 38 90% 8%;
+    --warning-muted: 38 50% 13%;
+    --warning-border: 38 40% 30%;
+
+    --border: 0 0% 15%;
+    --input: 0 0% 22%;
+    --ring: 0 0% 55%;
+
+    --radius: 0.6rem;
+
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "Consolas", monospace;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: hsl(0 0% 100% / 0.20);
+  }
+
+  /* slim scrollbars */
+  ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(0 0% 30%);
+    background-clip: content-box;
+  }
+
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+}

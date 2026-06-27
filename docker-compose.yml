@@ -1,0 +1,140 @@
+# SWIFT Asset Control — the whole demo as one compose stack.
+#
+#   docker compose up --build        # → console http://localhost:5173, API http://localhost:4000
+#   docker compose down              # stop everything
+#
+# Boot order is enforced by health/condition gates:
+#   chain (anvil) → deploy (forge, one-shot) → signer/registry/screening → orchestrator → ui
+#
+# Every service runs the single image built from ./Dockerfile (see the *image anchor).
+# Logs are multiplexed to stdout, one clean `service | …` line per service.
+
+name: swift-control-function
+
+# Shared base: build the image once, reuse it for every service.
+x-app: &app
+  build: .
+  image: swift-control-function:latest
+  pull_policy: build
+  restart: unless-stopped
+
+services:
+  # ── Chain ──────────────────────────────────────────────────────────────────
+  # Local anvil dev node. --silent drops the per-request noise so the logs stay
+  # readable; deterministic accounts match the deploy + fixtures.
+  chain:
+    <<: *app
+    container_name: swift-chain
+    command: anvil --host 0.0.0.0 --silent
+    ports:
+      - "8545:8545"
+    healthcheck:
+      test: ["CMD", "cast", "block-number", "--rpc-url", "http://127.0.0.1:8545"]
+      interval: 2s
+      timeout: 4s
+      retries: 30
+
+  # ── Deploy ─────────────────────────────────────────────────────────────────
+  # One-shot: broadcasts the control function to the chain and writes the address
+  # book to fixtures/deployments.json (shared with the services via the bind mount).
+  deploy:
+    <<: *app
+    container_name: swift-deploy
+    restart: "no"
+    command: node scripts/deploy.mjs
+    environment:
+      RPC_URL: http://chain:8545
+    volumes:
+      - ./fixtures:/app/fixtures
+    depends_on:
+      chain:
+        condition: service_healthy
+
+  # ── SWIFT services ───────────────────────────────────────────────────────────
+  signer:
+    <<: *app
+    container_name: swift-signer
+    command: pnpm exec tsx services/signer/src/index.ts
+    environment:
+      RPC_URL: http://chain:8545
+    volumes:
+      - ./fixtures:/app/fixtures
+    depends_on:
+      chain:
+        condition: service_healthy
+      deploy:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:4001/health"]
+      interval: 3s
+      timeout: 4s
+      retries: 20
+
+  registry:
+    <<: *app
+    container_name: swift-registry
+    command: pnpm exec tsx services/kyc-registry/src/index.ts
+    volumes:
+      - ./fixtures:/app/fixtures
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:4002/health"]
+      interval: 3s
+      timeout: 4s
+      retries: 20
+
+  screening:
+    <<: *app
+    container_name: swift-screening
+    command: pnpm exec tsx services/screening/src/index.ts
+    volumes:
+      - ./fixtures:/app/fixtures
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:4003/health"]
+      interval: 3s
+      timeout: 4s
+      retries: 20
+
+  # ── Orchestrator (PDP API) ───────────────────────────────────────────────────
+  orchestrator:
+    <<: *app
+    container_name: swift-orchestrator
+    command: pnpm exec tsx services/orchestrator/src/index.ts
+    environment:
+      RPC_URL: http://chain:8545
+      SIGNER_URL: http://signer:4001
+      REGISTRY_URL: http://registry:4002
+      SCREENING_URL: http://screening:4003
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./fixtures:/app/fixtures
+      - ./out:/app/out
+    depends_on:
+      chain:
+        condition: service_healthy
+      deploy:
+        condition: service_completed_successfully
+      signer:
+        condition: service_healthy
+      registry:
+        condition: service_healthy
+      screening:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:4000/api/health"]
+      interval: 3s
+      timeout: 4s
+      retries: 30
+
+  # ── Console (React + Vite) ───────────────────────────────────────────────────
+  # The browser loads the console from :5173 and calls the API at :4000 (both
+  # published to the host), so no build-time API URL is needed.
+  ui:
+    <<: *app
+    container_name: swift-ui
+    command: pnpm --filter ui dev
+    ports:
+      - "5173:5173"
+    depends_on:
+      orchestrator:
+        condition: service_healthy

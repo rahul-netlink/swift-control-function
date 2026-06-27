@@ -1,0 +1,22 @@
+{
+  "provider": "OFAC SDN + EU CFSP consolidated",
+  "pollIntervalMs": 45000,
+  "deltas": [
+    {"action": "none"},
+    {
+      "action": "add",
+      "role": "newfund",
+      "entity": "NewFund Capital SA",
+      "program": "EU CFSP 2026/0412",
+      "listRef": "EU.RU.10231"
+    },
+    {"action": "none"},
+    {
+      "action": "remove",
+      "role": "newfund",
+      "entity": "NewFund Capital SA",
+      "program": "EU CFSP 2026/0412 (delisted)",
+      "listRef": "EU.RU.10231"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@swift-cf/orchestrator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@swift-cf/iso20022": "workspace:*",
+    "@swift-cf/shared": "workspace:*",
+    "ethers": "^6.13.2",
+    "eventsource": "^2.0.2",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/eventsource": "^1.1.15"
+  }
+}

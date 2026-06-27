@@ -1,0 +1,44 @@
+{
+  "acts": [
+    {
+      "id": 1,
+      "title": "Happy path (cold then hot)",
+      "steps": [
+        {"action": "transfer", "adapter": "erc20", "from": "seller", "to": "buyer", "amount": "100", "path": "cold", "expect": {"allowed": true, "reasonCode": "OK00"}, "emits": "pacs.002:ACSC"},
+        {"action": "publishClaim", "wallet": "buyer"},
+        {"action": "transfer", "adapter": "erc20", "from": "seller", "to": "buyer", "amount": "100", "path": "hot", "expect": {"allowed": true, "reasonCode": "OK00"}}
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Asset-agnostic",
+      "steps": [
+        {"action": "screenBoth", "from": "seller", "to": "buyer", "amount": "100", "expect": {"identical": true, "allowed": true, "reasonCode": "OK00"}}
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Deny by default",
+      "steps": [
+        {"action": "transfer", "adapter": "erc20", "from": "unknown", "to": "buyer", "amount": "100", "path": "hot", "expect": {"allowed": false, "reasonCode": "BLCK01"}, "emits": "pacs.002:RJCT"}
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Freeze (break-glass)",
+      "steps": [
+        {"action": "freeze", "target": "seller"},
+        {"action": "transfer", "adapter": "erc20", "from": "seller", "to": "buyer", "amount": "100", "path": "hot", "expect": {"allowed": false, "reasonCode": "FRZ06"}, "emits": "pacs.002:RJCT"}
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Sanctions revocation",
+      "steps": [
+        {"action": "release", "target": "seller"},
+        {"action": "sanction", "party": "buyer", "bic": "BNPAFRPP"},
+        {"action": "transfer", "adapter": "erc20", "from": "seller", "to": "buyer", "amount": "100", "path": "hot", "expect": {"allowed": false, "reasonCode": "AML02"}, "emits": "pacs.002:RJCT"}
+      ]
+    }
+  ]
+}

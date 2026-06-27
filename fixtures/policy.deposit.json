@@ -1,0 +1,30 @@
+{
+  "policyId": "eu-emoney-deposit-v1",
+  "version": "eu-emoney-deposit-v1@1",
+  "assetClass": "DEPOSIT-EUR-V1",
+  "assetName": "Tokenised Deposit",
+  "combination": "deny-overrides",
+  "rules": [
+    {"id": "freeze", "label": "Freeze", "check": "neither party nor holding frozen", "denyReasonCode": "FRZ06"},
+    {"id": "kyc", "label": "KYC", "check": "wallet->BIC binding present and KYC claim valid", "denyReasonCode": "BLCK01"},
+    {"id": "sanctions", "label": "Sanctions", "check": "screening attestation clear and fresh", "denyReasonCode": "AML02"},
+    {"id": "jurisdiction", "label": "Jurisdiction", "check": "destination matches the jurisdiction matrix", "denyReasonCode": "JUR03"},
+    {"id": "transferLimit", "label": "Tiered limit", "check": "amount resolved against the notional bands", "denyReasonCode": "LIM07"},
+    {"id": "velocity", "label": "Velocity", "check": "rolling-window cumulative cap per party", "denyReasonCode": "VEL11"},
+    {"id": "edd", "label": "EDD gate", "check": "enhanced approval present when policy demands review", "reviewReasonCode": "EDD10"}
+  ],
+  "bands": [
+    {"upTo": "500000", "action": "ALLOW", "label": "Straight-through"},
+    {"upTo": "2000000", "action": "REVIEW", "label": "Enhanced due diligence"},
+    {"upTo": null, "action": "DENY", "label": "Refused", "denyReasonCode": "LIM07"}
+  ],
+  "jurisdictions": [
+    {"code": "FR", "allowed": true, "maxAmount": null, "requireEdd": false, "note": "Home market"},
+    {"code": "DE", "allowed": true, "maxAmount": null, "requireEdd": false, "note": "Home market"}
+  ],
+  "categories": [],
+  "velocity": {"window": 86400, "windowLabel": "24h", "cap": "5000000"},
+  "maxHolders": 0,
+  "allowedCountries": ["FR", "DE"],
+  "lockupEnd": null
+}

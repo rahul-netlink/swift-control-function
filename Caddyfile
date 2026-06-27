@@ -1,0 +1,34 @@
+# UAT reverse proxy: one origin in front of the whole stack.
+#   :80  → plain HTTP
+#   :443 → HTTPS with Caddy's internal self-signed CA (zero-config)
+# Both serve the same thing (no forced redirect) so http:// and https:// both work.
+# The console (static build) is served from /srv; /api/* is proxied to the
+# orchestrator so the browser only ever talks to one same-origin host.
+#
+# Real certificate instead of self-signed: replace `:80, :443` with your hostname
+# (e.g. `uat.example.com`), drop `tls internal`, and delete the global
+# `auto_https disable_redirects` block — Caddy then auto-provisions + renews a
+# Let's Encrypt cert (ports 80/443 must be publicly reachable).
+#
+# Behind a platform that already terminates TLS (Heroku/Render/apix-style): set
+# this to `:{$PORT:80}`, drop `tls internal` and the globals — serve plain HTTP
+# on the one port the platform routes to.
+
+{
+	auto_https disable_redirects
+}
+
+:80, :443 {
+	tls internal
+
+	@api path /api/*
+	handle @api {
+		reverse_proxy orchestrator:4000
+	}
+	handle {
+		encode zstd gzip
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

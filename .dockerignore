@@ -1,0 +1,25 @@
+# Keep the build context to source only — everything below is reinstalled or
+# regenerated inside the image.
+**/node_modules
+.git
+.gitignore
+
+# Foundry build output (forge build runs in the image)
+contracts/out
+contracts/cache
+contracts/broadcast
+
+# Generated demo artifacts
+out/*.xml
+fixtures/deployments.json
+
+# Frontend build output
+ui/dist
+**/dist
+
+# Misc
+*.log
+.DS_Store
+Dockerfile
+.dockerignore
+docker-compose*.yml

@@ -1,0 +1,32 @@
+# Run the stack on Hyperledger Besu instead of the default anvil node — the same
+# EVM family as SWIFT's shared-ledger MVP. Single-validator Clique chain (2s
+# blocks, zero base fee) whose genesis prefunds the same accounts as anvil, so
+# the deploy and services bind identically.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.besu.yml up --build
+#
+# Only the `chain` service is swapped; everything downstream still talks to it
+# at http://chain:8545.
+services:
+  chain:
+    build: !reset null
+    image: hyperledger/besu:24.3.0
+    command:
+      - --genesis-file=/config/genesis.json
+      - --node-private-key-file=/config/key
+      - --miner-enabled=true
+      - --miner-coinbase=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+      - --rpc-http-enabled=true
+      - --rpc-http-host=0.0.0.0
+      - --rpc-http-port=8545
+      - --rpc-http-cors-origins=*
+      - --rpc-http-api=ETH,NET,WEB3,CLIQUE
+      - --host-allowlist=*
+    volumes:
+      - ./infra/besu/genesis.json:/config/genesis.json:ro
+      - ./infra/besu/key:/config/key:ro
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8545'"]
+      interval: 2s
+      timeout: 4s
+      retries: 30

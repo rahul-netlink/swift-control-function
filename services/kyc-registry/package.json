@@ -1,0 +1,14 @@
+{
+  "name": "@swift-cf/kyc-registry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@swift-cf/shared": "workspace:*",
+    "express": "^4.19.2"
+  }
+}
