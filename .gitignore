@@ -11,6 +11,9 @@ contracts/broadcast/
 fixtures/deployments.json
 out/*.xml
 
+# UAT supervisor runtime (pids, logs)
+.uat/
+
 # Local environment
 .env
 .env.local
