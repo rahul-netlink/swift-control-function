@@ -86,11 +86,19 @@ ensure_node() {
 }
 
 ensure_foundry() {
-  if command -v forge >/dev/null; then echo "Foundry present ($(forge --version | head -1))"; return; fi
+  # Test that forge actually RUNS, not just that it's on PATH — prebuilt gnu
+  # binaries fail on old-glibc boxes (GLIBC_2.34 not found).
+  if forge --version >/dev/null 2>&1; then echo "Foundry present ($(forge --version | head -1))"; return; fi
   echo "installing Foundry (anvil/forge/cast)…"
-  curl -L https://foundry.paradigm.xyz | bash
-  "$HOME/.foundry/bin/foundryup"
+  [ -x "$HOME/.foundry/bin/foundryup" ] || curl -L https://foundry.paradigm.xyz | bash
   PATH="$HOME/.foundry/bin:$PATH"
+  # On Linux pull the static musl (alpine) build — it has no glibc dependency,
+  # so it runs on any host regardless of glibc version.
+  local plat=; [ "$(uname -s)" = Linux ] && plat=alpine
+  "$HOME/.foundry/bin/foundryup" ${plat:+--platform "$plat"}
+  PATH="$HOME/.foundry/bin:$PATH"
+  forge --version >/dev/null 2>&1 || { echo "Foundry installed but still not runnable" >&2; exit 1; }
+  echo "Foundry installed ($(forge --version | head -1))"
 }
 
 ensure_pnpm() {
