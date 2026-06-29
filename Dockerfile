@@ -19,6 +19,11 @@ RUN curl -L https://foundry.paradigm.xyz | bash && foundryup
 # pnpm via corepack (matches the workspace's package manager).
 RUN corepack enable && corepack prepare pnpm@9 --activate
 
+# Caddy — single static binary, the one public front door on Railway's $PORT
+# (see scripts/railway-start.sh). linux/amd64; bump arch/version if Railway changes.
+RUN curl -fsSL "https://github.com/caddyserver/caddy/releases/download/v2.8.4/caddy_2.8.4_linux_amd64.tar.gz" \
+    | tar -xz -C /usr/local/bin caddy
+
 WORKDIR /app
 
 # Compile the contracts FIRST, off only the contracts/ tree. via_ir is required
@@ -38,4 +43,13 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
+# Pre-build the console to static assets (relative /api URLs → same-origin via
+# Caddy). Baked at image-build so Railway boots fast; dev compose ignores it and
+# runs Vite instead.
+RUN VITE_API_URL="" pnpm --filter ui build
+
 EXPOSE 4000 4001 4002 4003 5173 8545
+
+# Railway: one container runs the whole stack behind Caddy on $PORT. The dev
+# docker-compose overrides this per-service, so it's Railway-only.
+CMD ["bash", "scripts/railway-start.sh"]

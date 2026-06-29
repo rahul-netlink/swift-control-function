@@ -1,0 +1,17 @@
+# Railway front door: one plain-HTTP port. Railway terminates TLS at its edge
+# and routes the public :80/:443 to $PORT, so we just serve HTTP on $PORT and
+# let it handle certs. Static console from /app/ui/dist; /api/* → orchestrator,
+# so the browser only ever talks to one same-origin host.
+:{$PORT:8080} {
+	encode zstd gzip
+
+	@api path /api/*
+	handle @api {
+		reverse_proxy 127.0.0.1:4000
+	}
+	handle {
+		root * /app/ui/dist
+		try_files {path} /index.html
+		file_server
+	}
+}
