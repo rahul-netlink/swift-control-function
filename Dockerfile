@@ -27,8 +27,7 @@ WORKDIR /app
 # and the BuildKit cache mount keeps the downloaded solc binary across builds so it
 # is never re-fetched. .dockerignore keeps out/cache/broadcast out of the context.
 COPY contracts ./contracts
-RUN --mount=type=cache,target=/root/.svm \
-    forge build --root contracts
+RUN forge build --root contracts
 
 # Install workspace dependencies, then bring in the source. Splitting the COPYs
 # lets Docker cache the (slow) install layer across source-only changes.

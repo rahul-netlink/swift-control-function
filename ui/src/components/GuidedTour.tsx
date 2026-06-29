@@ -573,7 +573,7 @@ export function GuidedTour({ phase, setPhase, controller, connected, latestKey, 
                 Finish
               </Button>
             ) : (
-              <Button size="sm" disabled={status === "settling"} onClick={() => setStep((s) => Math.min(CUES.length - 1, s + 1))}>
+              <Button size="sm" disabled={status === "settling" || (cue.watch !== "manual" && status !== "done")} onClick={() => setStep((s) => Math.min(CUES.length - 1, s + 1))}>
                 Next
               </Button>
             )}
@@ -595,7 +595,8 @@ function Spotlight({ rect }: { rect: Rect }) {
   };
   return (
     <div className="pointer-events-none fixed inset-0 z-40">
-      <div className="absolute rounded-lg" style={{ ...box, boxShadow: "0 0 0 9999px rgba(0,0,0,0.66)" }} />
+      {/* ponytail: feathered, lighter dim so the area around a big spotlit component stays readable/explorable (clicks already pass through via pointer-events-none). Blur fades the darkness in from the element edge outward. */}
+      <div className="absolute rounded-lg" style={{ ...box, boxShadow: "0 0 36px 9999px rgba(0,0,0,0.45)" }} />
       <div
         className="absolute rounded-lg"
         style={{ ...box, outline: "2px solid hsl(0 0% 92% / 0.85)", outlineOffset: "-1px", animation: "tourpulse 1.6s ease-in-out infinite" }}
